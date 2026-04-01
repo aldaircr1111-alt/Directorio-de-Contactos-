@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken');
 const { Pool } = require('pg'); // Importar el cliente de PostgreSQL
 
 const app = express();
+const cors = require('cors');
+app.use(cors());
 const port = 3000;
 
 // Configuración de la conexión a la base de datos PostgreSQL
