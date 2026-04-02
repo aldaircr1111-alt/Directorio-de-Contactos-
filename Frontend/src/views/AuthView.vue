@@ -1,31 +1,34 @@
 <template>
-  <div class="contenedor-principal">
-    <h1>Directorio de Contactos</h1>
-
-    <div class="caja-formulario">
-      <h2>{{ esLogin ? 'Iniciar Sesión' : 'Registrar Nuevo Usuario' }}</h2>
-
-      <form @submit.prevent="procesarFormulario">
-        <div class="grupo-input">
-          <label>Usuario:</label>
-          <input type="text" v-model="username" placeholder="Escribe tu usuario" required />
-        </div>
+  <div class="auth-container">
+    <div class="auth-card">
+      <h1 class="titulo">Directorio de Contactos</h1>
+      
+      <div class="form-wrapper">
+        <h2>{{ esLogin ? 'Iniciar Sesión' : 'Crear Cuenta' }}</h2>
         
-        <div class="grupo-input">
-          <label>Contraseña:</label>
-          <input type="password" v-model="password" placeholder="Mínimo 6 caracteres" required />
-        </div>
+        <form @submit.prevent="procesarFormulario">
+          <div class="grupo-input">
+            <label>Usuario:</label>
+            <input type="text" v-model="username" required placeholder="Escribe tu usuario" />
+          </div>
+          <div class="grupo-input">
+            <label>Contraseña:</label>
+            <input type="password" v-model="password" required placeholder="Mínimo 6 caracteres" />
+          </div>
+          
+          <button type="submit" class="btn-principal">
+            {{ esLogin ? 'Ingresar al Directorio' : 'Registrarme' }}
+          </button>
+        </form>
 
-        <button type="submit" class="btn-principal">
-          {{ esLogin ? 'Ingresar al Directorio' : 'Crear mi Cuenta' }}
-        </button>
-      </form>
+        <p class="cambiar-modo">
+          <a href="#" @click.prevent="esLogin = !esLogin">
+            {{ esLogin ? '¿No tienes cuenta? Regístrate aquí' : '¿Ya tienes cuenta? Inicia sesión' }}
+          </a>
+        </p>
 
-      <p class="texto-alternar" @click="esLogin = !esLogin">
-        {{ esLogin ? '¿No tienes cuenta? Regístrate aquí' : '¿Ya tienes cuenta? Inicia sesión aquí' }}
-      </p>
-
-      <p v-if="mensaje" :class="['mensaje', tipoMensaje]">{{ mensaje }}</p>
+        <p v-if="mensaje" :class="['mensaje-feedback', tipoMensaje]">{{ mensaje }}</p>
+      </div>
     </div>
   </div>
 </template>
@@ -34,10 +37,10 @@
 import { ref } from 'vue';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
-import { useAuthStore } from '../stores/auth'; // 1. Importamos Pinia
+import { useAuthStore } from '../stores/auth';
 
 const router = useRouter();
-const authStore = useAuthStore(); // 2. Activamos la bóveda
+const authStore = useAuthStore();
 const esLogin = ref(true);
 const username = ref('');
 const password = ref('');
@@ -45,7 +48,11 @@ const mensaje = ref('');
 const tipoMensaje = ref('');
 
 const procesarFormulario = async () => {
-  const url = esLogin.value ? 'http://localhost:3000/login' : 'http://localhost:3000/register';
+  // AQUÍ ESTÁN LAS URLS NUEVAS APUNTANDO A RENDER
+  const url = esLogin.value 
+    ? 'https://directorio-de-contactos-backend.onrender.com/login' 
+    : 'https://directorio-de-contactos-backend.onrender.com/register';
+  
   mensaje.value = 'Procesando...';
   tipoMensaje.value = '';
 
@@ -53,16 +60,10 @@ const procesarFormulario = async () => {
     const respuesta = await axios.post(url, { username: username.value, password: password.value });
 
     if (esLogin.value) {
-      // 3. Guardamos el token en Pinia en lugar de usar localStorage directamente
       authStore.login(respuesta.data.token);
-      
       mensaje.value = '¡Inicio de sesión exitoso! Redirigiendo...';
       tipoMensaje.value = 'exito';
-      
-      setTimeout(() => {
-        router.push('/directorio');
-      }, 1000);
-
+      setTimeout(() => router.push('/directorio'), 1000);
     } else {
       mensaje.value = '¡Usuario creado con éxito! Ahora puedes iniciar sesión.';
       tipoMensaje.value = 'exito';
@@ -77,30 +78,21 @@ const procesarFormulario = async () => {
 };
 </script>
 
-<style>
-/* Reset básico */
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-body { background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-
-.contenedor-principal { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
-h1 { color: #2c3e50; margin-bottom: 30px; text-align: center; }
-
-.caja-formulario { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
-h2 { text-align: center; color: #34495e; margin-bottom: 20px; font-size: 1.5rem; }
-
-.grupo-input { margin-bottom: 15px; }
-.grupo-input label { display: block; margin-bottom: 5px; color: #7f8c8d; font-weight: 500; }
+<style scoped>
+.auth-container { min-height: 100vh; display: flex; justify-content: center; align-items: center; background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+.auth-card { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+.titulo { color: #2c3e50; font-size: 1.8rem; margin-bottom: 30px; }
+h2 { color: #34495e; font-size: 1.3rem; margin-bottom: 20px; }
+.grupo-input { margin-bottom: 15px; text-align: left; }
+.grupo-input label { display: block; margin-bottom: 5px; color: #7f8c8d; font-size: 0.9rem; }
 .grupo-input input { width: 100%; padding: 10px; border: 1px solid #bdc3c7; border-radius: 5px; outline: none; transition: border-color 0.3s; }
 .grupo-input input:focus { border-color: #3498db; }
-
-.btn-principal { width: 100%; padding: 12px; background-color: #3498db; color: white; border: none; border-radius: 5px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background-color 0.3s; }
+.btn-principal { width: 100%; padding: 12px; background-color: #3498db; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; transition: background-color 0.3s; margin-top: 10px; }
 .btn-principal:hover { background-color: #2980b9; }
-
-.texto-alternar { text-align: center; margin-top: 15px; color: #3498db; cursor: pointer; font-size: 0.9rem; text-decoration: underline; }
-.texto-alternar:hover { color: #2980b9; }
-
-.mensaje { margin-top: 20px; padding: 10px; border-radius: 5px; text-align: center; font-weight: 500; font-size: 0.9rem; }
-.mensaje.exito { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-.mensaje.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+.cambiar-modo { margin-top: 20px; font-size: 0.9rem; }
+.cambiar-modo a { color: #3498db; text-decoration: none; }
+.cambiar-modo a:hover { text-decoration: underline; }
+.mensaje-feedback { margin-top: 15px; padding: 10px; border-radius: 5px; font-size: 0.9rem; font-weight: bold; }
+.mensaje-feedback.exito { background-color: #e8f8f5; color: #27ae60; }
+.mensaje-feedback.error { background-color: #fdedec; color: #c0392b; }
 </style>

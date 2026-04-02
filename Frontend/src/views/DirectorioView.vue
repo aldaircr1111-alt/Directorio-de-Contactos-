@@ -42,7 +42,6 @@
 
       <section class="panel-lista">
         <h2>Mis Contactos</h2>
-        
         <div class="buscador">
           <input type="text" v-model="busqueda" placeholder="🔍 Buscar por nombre o categoría..." />
         </div>
@@ -86,15 +85,16 @@ const busqueda = ref('');
 const mensaje = ref('');
 const tipoMensaje = ref('exito');
 
-// Variables para controlar el formulario
 const modoEdicion = ref(false);
 const contactoIdActivo = ref(null);
 const formulario = ref({ nombre: '', telefono: '', categoria: '' });
 
-// 1. Obtener contactos (READ)
+// URL BASE APUNTANDO A RENDER
+const API_URL = 'https://directorio-de-contactos-backend.onrender.com/contactos';
+
 const obtenerContactos = async () => {
   try {
-    const respuesta = await axios.get('http://localhost:3000/contactos', {
+    const respuesta = await axios.get(API_URL, {
       headers: { Authorization: `Bearer ${authStore.token}` }
     });
     contactos.value = respuesta.data;
@@ -103,7 +103,6 @@ const obtenerContactos = async () => {
   }
 };
 
-// 2. Guardar o Actualizar contacto (CREATE / UPDATE)
 const guardarContacto = async () => {
   mensaje.value = 'Procesando...';
   tipoMensaje.value = 'exito';
@@ -112,20 +111,17 @@ const guardarContacto = async () => {
     const cabeceras = { headers: { Authorization: `Bearer ${authStore.token}` } };
 
     if (modoEdicion.value) {
-      // Petición PUT para actualizar
-      const respuesta = await axios.put(`http://localhost:3000/contactos/${contactoIdActivo.value}`, formulario.value, cabeceras);
-      // Actualizamos la lista visualmente
+      const respuesta = await axios.put(`${API_URL}/${contactoIdActivo.value}`, formulario.value, cabeceras);
       const index = contactos.value.findIndex(c => c.id === contactoIdActivo.value);
       if (index !== -1) contactos.value[index] = respuesta.data.contacto;
       mensaje.value = '¡Contacto actualizado!';
     } else {
-      // Petición POST para crear
-      const respuesta = await axios.post('http://localhost:3000/contactos', formulario.value, cabeceras);
+      const respuesta = await axios.post(API_URL, formulario.value, cabeceras);
       contactos.value.push(respuesta.data.contacto);
       mensaje.value = '¡Contacto guardado!';
     }
 
-    cancelarEdicion(); // Limpia el formulario
+    cancelarEdicion();
     setTimeout(() => mensaje.value = '', 3000);
   } catch (error) {
     mensaje.value = 'Error al procesar la solicitud.';
@@ -133,16 +129,13 @@ const guardarContacto = async () => {
   }
 };
 
-// 3. Eliminar contacto (DELETE)
 const eliminarContacto = async (id) => {
-  // Confirmación de seguridad
   if (!confirm('¿Estás seguro de que deseas eliminar este contacto?')) return;
 
   try {
-    await axios.delete(`http://localhost:3000/contactos/${id}`, {
+    await axios.delete(`${API_URL}/${id}`, {
       headers: { Authorization: `Bearer ${authStore.token}` }
     });
-    // Quitamos el contacto borrado de la pantalla
     contactos.value = contactos.value.filter(c => c.id !== id);
   } catch (error) {
     console.error(error);
@@ -150,15 +143,12 @@ const eliminarContacto = async (id) => {
   }
 };
 
-// Función para poner los datos en el formulario cuando le dan al lápiz ✏️
 const prepararEdicion = (contacto) => {
   modoEdicion.value = true;
   contactoIdActivo.value = contacto.id;
-  // Copiamos los datos al formulario
   formulario.value = { nombre: contacto.nombre, telefono: contacto.telefono, categoria: contacto.categoria };
 };
 
-// Función para limpiar el formulario
 const cancelarEdicion = () => {
   modoEdicion.value = false;
   contactoIdActivo.value = null;
@@ -182,7 +172,6 @@ onMounted(() => { obtenerContactos(); });
 </script>
 
 <style scoped>
-/* (Se mantienen los estilos anteriores, con algunos añadidos para los botones) */
 .directorio-container { min-height: 100vh; background-color: #f4f7f6; padding: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;}
 .cabecera { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
 .cabecera h1 { color: #2c3e50; font-size: 1.5rem; margin: 0; }
