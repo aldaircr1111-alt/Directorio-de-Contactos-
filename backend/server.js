@@ -5,16 +5,15 @@ const { Pool } = require('pg'); // Importar el cliente de PostgreSQL
 
 const app = express();
 const cors = require('cors');
-app.use(cors());
+app.use(cors({ origin: '*' }));
 const port = 3000;
 
-// Configuración de la conexión a la base de datos PostgreSQL
+// Configuración para la base de datos en la nube (Neon)
 const pool = new Pool({
-  user: 'postgres',
-  host: 'localhost',
-  database: 'directorio_contactos', // Nombre de la base de datos
-  password: 'aldair1121', // La contraseña de tu base de datos PostgreSQL
-  port: 5432,
+  connectionString: 'postgresql://neondb_owner:npg_GnmdY8yC9kfa@ep-round-hill-am14rzdj-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 app.use(express.json());
