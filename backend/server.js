@@ -132,7 +132,50 @@ app.get('/contactos', verificarToken, async (req, res) => {
     res.status(500).json({ error: 'Hubo un problema al buscar los contactos' });
   }
 });
+// Ruta 3: Eliminar un contacto (DELETE)
+app.delete('/contactos/:id', verificarToken, async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    // Solo borra si el ID del contacto coincide Y si le pertenece al usuario que lo pide
+    const resultado = await pool.query(
+      'DELETE FROM contactos WHERE id = $1 AND usuario_id = $2 RETURNING *',
+      [id, req.usuarioId]
+    );
+    
+    if (resultado.rowCount === 0) {
+      return res.status(404).json({ error: 'Contacto no encontrado o no tienes permiso para borrarlo' });
+    }
+    
+    res.json({ mensaje: 'Contacto eliminado correctamente' });
+  } catch (error) {
+    console.error('Error al eliminar el contacto:', error);
+    res.status(500).json({ error: 'Hubo un problema al eliminar el contacto' });
+  }
+});
 
+// Ruta 4: Editar un contacto (PUT)
+app.put('/contactos/:id', verificarToken, async (req, res) => {
+  const { id } = req.params;
+  const { nombre, telefono, categoria } = req.body;
+  
+  try {
+    // Solo actualiza si es el dueño del contacto
+    const resultado = await pool.query(
+      'UPDATE contactos SET nombre = $1, telefono = $2, categoria = $3 WHERE id = $4 AND usuario_id = $5 RETURNING *',
+      [nombre, telefono, categoria, id, req.usuarioId]
+    );
+
+    if (resultado.rowCount === 0) {
+      return res.status(404).json({ error: 'Contacto no encontrado o no tienes permiso para editarlo' });
+    }
+
+    res.json({ mensaje: 'Contacto actualizado con éxito', contacto: resultado.rows[0] });
+  } catch (error) {
+    console.error('Error al actualizar el contacto:', error);
+    res.status(500).json({ error: 'Hubo un problema al actualizar el contacto' });
+  }
+});
 // Iniciar el servidor
 app.listen(port, () => {
   console.log(`Servidor corriendo correctamente en http://localhost:${port}`);

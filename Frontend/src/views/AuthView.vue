@@ -33,9 +33,11 @@
 <script setup>
 import { ref } from 'vue';
 import axios from 'axios';
-import { useRouter } from 'vue-router'; // 1. Importamos el router
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '../stores/auth'; // 1. Importamos Pinia
 
-const router = useRouter(); // 2. Activamos el router
+const router = useRouter();
+const authStore = useAuthStore(); // 2. Activamos la bóveda
 const esLogin = ref(true);
 const username = ref('');
 const password = ref('');
@@ -51,11 +53,12 @@ const procesarFormulario = async () => {
     const respuesta = await axios.post(url, { username: username.value, password: password.value });
 
     if (esLogin.value) {
-      localStorage.setItem('token', respuesta.data.token);
+      // 3. Guardamos el token en Pinia en lugar de usar localStorage directamente
+      authStore.login(respuesta.data.token);
+      
       mensaje.value = '¡Inicio de sesión exitoso! Redirigiendo...';
       tipoMensaje.value = 'exito';
       
-      // 3. ¡La magia! Si el login es correcto, lo mandamos a la ruta protegida
       setTimeout(() => {
         router.push('/directorio');
       }, 1000);
