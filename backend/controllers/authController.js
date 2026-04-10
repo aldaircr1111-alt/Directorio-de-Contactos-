@@ -23,25 +23,32 @@ const register = async (req, res) => {
   }
 };
 
-// Función para iniciar sesión
 const login = async (req, res) => {
   const { username, password } = req.body;
   
   try {
     const userResult = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
     if (userResult.rows.length === 0) {
-      return res.status(400).send('Usuario no encontrado');
+      return res.status(400).json({ error: 'Usuario no encontrado' });
     }
 
     const user = userResult.rows[0];
     const isMatch = await bcrypt.compare(password, user.password);
     
     if (!isMatch) {
-      return res.status(400).send('Contraseña incorrecta');
+      return res.status(400).json({ error: 'Contraseña incorrecta' });
     }
 
     const token = jwt.sign({ id: user.id }, 'secreta', { expiresIn: '1h' });
-    res.status(200).json({ token });
+    
+    // ENVIAMOS TAMBIÉN LOS DATOS DEL USUARIO (sin la contraseña por seguridad)
+    res.status(200).json({ 
+      token, 
+      user: { 
+        username: user.username, 
+        telefono: user.telefono 
+      } 
+    });
   } catch (error) {
     console.error('Error al iniciar sesión:', error);
     res.status(500).send('Error al iniciar sesión');
