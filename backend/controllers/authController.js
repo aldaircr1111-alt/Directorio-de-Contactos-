@@ -1,33 +1,40 @@
-const bcrypt = require('bcryptjs');
+const pool = require('../config/db');
+const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const pool = require('../config/db'); // Importamos la base de datos
 
-// Función para registrar usuario
+// Función para Registrar Usuario
 const register = async (req, res) => {
-  const { username, password } = req.body;
-  console.log('Datos recibidos para el registro:', { username, password });
+  const { username, password, telefono } = req.body;
 
   try {
-    const userResult = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
-    if (userResult.rows.length > 0) {
-      return res.status(400).send('El nombre de usuario ya está en uso');
-    }
+    // Hashear la contraseña
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    await pool.query('INSERT INTO users (username, password) VALUES ($1, $2)', [username, hashedPassword]);
+    // Insertar en la base de datos (con el nuevo campo de teléfono)
+    await pool.query(
+      'INSERT INTO users (username, password, telefono) VALUES ($1, $2, $3)',
+      [username, hashedPassword, telefono]
+    );
 
-    res.status(201).send('Usuario registrado');
+    res.status(201).json({ message: 'Usuario creado exitosamente' });
   } catch (error) {
-    console.error('Error al registrar el usuario:', error);
-    res.status(500).send('Error al registrar el usuario');
+    console.error('Error al registrar:', error);
+    // Error 23505 es el código de PostgreSQL para "violación de regla UNIQUE"
+    if (error.code === '23505') {
+      return res.status(400).json({ error: 'El usuario o el teléfono ya están registrados' });
+    }
+    res.status(500).json({ error: 'Error interno del servidor al registrar' });
   }
 };
 
+// Función para Iniciar Sesión
 const login = async (req, res) => {
   const { username, password } = req.body;
   
   try {
     const userResult = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+    
     if (userResult.rows.length === 0) {
       return res.status(400).json({ error: 'Usuario no encontrado' });
     }
@@ -39,9 +46,10 @@ const login = async (req, res) => {
       return res.status(400).json({ error: 'Contraseña incorrecta' });
     }
 
+    // Generar el token
     const token = jwt.sign({ id: user.id }, 'secreta', { expiresIn: '1h' });
     
-    // ENVIAMOS TAMBIÉN LOS DATOS DEL USUARIO (sin la contraseña por seguridad)
+    // AQUÍ ESTÁ LA CLAVE: Enviamos el token y los datos del usuario al frontend
     res.status(200).json({ 
       token, 
       user: { 
@@ -51,8 +59,11 @@ const login = async (req, res) => {
     });
   } catch (error) {
     console.error('Error al iniciar sesión:', error);
-    res.status(500).send('Error al iniciar sesión');
+    res.status(500).json({ error: 'Error interno del servidor al iniciar sesión' });
   }
 };
 
-module.exports = { register, login };
+module.exports = {
+  register,
+  login
+};
