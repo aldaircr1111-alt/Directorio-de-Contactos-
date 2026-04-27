@@ -1,61 +1,68 @@
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const pool = require('../config/db'); // Importamos la base de datos
+const pool = require('../config/db');
 
-// Función para registrar usuario (NUEVA VERSIÓN CON TELÉFONO)
-const register = async (req, res) => {
-  const { username, password, telefono } = req.body; 
-  console.log('Datos recibidos para el registro:', { username, password, telefono });
-
+// Obtener todos los contactos del usuario
+const obtenerContactos = async (req, res) => {
   try {
-    // Verificamos si el usuario o el teléfono ya existen en la base de datos
-    const userResult = await pool.query(
-      'SELECT * FROM users WHERE username = $1 OR telefono = $2', 
-      [username, telefono]
-    );
-    
-    if (userResult.rows.length > 0) {
-      return res.status(400).json({ error: 'El nombre de usuario o el teléfono ya están en uso' });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    
-    // Insertamos el usuario incluyendo el teléfono
-    await pool.query(
-      'INSERT INTO users (username, password, telefono) VALUES ($1, $2, $3)', 
-      [username, hashedPassword, telefono]
-    );
-
-    res.status(201).json({ mensaje: 'Usuario registrado exitosamente' });
+    // req.user.id viene del middleware verificarToken
+    const result = await pool.query('SELECT * FROM contactos WHERE user_id = $1', [req.user.id]);
+    res.status(200).json(result.rows);
   } catch (error) {
-    console.error('Error al registrar el usuario:', error);
-    res.status(500).json({ error: 'Error al registrar el usuario' });
+    console.error('Error al obtener contactos:', error);
+    res.status(500).json({ error: 'Error al obtener los contactos' });
   }
 };
 
-// Función para iniciar sesión (SE MANTIENE IGUAL)
-const login = async (req, res) => {
-  const { username, password } = req.body;
-  
+// Crear un nuevo contacto
+const guardarContacto = async (req, res) => {
+  const { nombre, telefono, categoria } = req.body;
   try {
-    const userResult = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
-    if (userResult.rows.length === 0) {
-      return res.status(400).json({ error: 'Usuario no encontrado' });
-    }
-
-    const user = userResult.rows[0];
-    const isMatch = await bcrypt.compare(password, user.password);
-    
-    if (!isMatch) {
-      return res.status(400).json({ error: 'Contraseña incorrecta' });
-    }
-
-    const token = jwt.sign({ id: user.id }, 'secreta', { expiresIn: '1h' });
-    res.status(200).json({ token });
+    const result = await pool.query(
+      'INSERT INTO contactos (nombre, telefono, categoria, user_id) VALUES ($1, $2, $3, $4) RETURNING *',
+      [nombre, telefono, categoria, req.user.id]
+    );
+    res.status(201).json({ contacto: result.rows[0] });
   } catch (error) {
-    console.error('Error al iniciar sesión:', error);
-    res.status(500).json({ error: 'Error al iniciar sesión' });
+    console.error('Error al guardar contacto:', error);
+    res.status(500).json({ error: 'Error al guardar el contacto' });
   }
 };
 
-module.exports = { register, login };
+// Editar un contacto existente
+const editarContacto = async (req, res) => {
+  const { id } = req.params;
+  const { nombre, telefono, categoria } = req.body;
+  try {
+    const result = await pool.query(
+      'UPDATE contactos SET nombre = $1, telefono = $2, categoria = $3 WHERE id = $4 AND user_id = $5 RETURNING *',
+      [nombre, telefono, categoria, id, req.user.id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Contacto no encontrado o no autorizado' });
+    }
+    
+    res.status(200).json({ contacto: result.rows[0] });
+  } catch (error) {
+    console.error('Error al editar contacto:', error);
+    res.status(500).json({ error: 'Error al editar el contacto' });
+  }
+};
+
+// Eliminar un contacto
+const eliminarContacto = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query('DELETE FROM contactos WHERE id = $1 AND user_id = $2 RETURNING *', [id, req.user.id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Contacto no encontrado o no autorizado' });
+    }
+
+    res.status(200).json({ mensaje: 'Contacto eliminado exitosamente' });
+  } catch (error) {
+    console.error('Error al eliminar contacto:', error);
+    res.status(500).json({ error: 'Error al eliminar el contacto' });
+  }
+};
+
+module.exports = { obtenerContactos, guardarContacto, editarContacto, eliminarContacto };

@@ -11,6 +11,12 @@
             <label>Usuario:</label>
             <input type="text" v-model="username" required placeholder="Escribe tu usuario" />
           </div>
+          
+          <div class="grupo-input" v-if="!esLogin">
+            <label>Teléfono:</label>
+            <input type="text" v-model="telefono" required placeholder="Ej: 3001234567" />
+          </div>
+
           <div class="grupo-input">
             <label>Contraseña:</label>
             <input type="password" v-model="password" required placeholder="Mínimo 6 caracteres" />
@@ -44,11 +50,11 @@ const authStore = useAuthStore();
 const esLogin = ref(true);
 const username = ref('');
 const password = ref('');
+const telefono = ref(''); 
 const mensaje = ref('');
 const tipoMensaje = ref('');
 
 const procesarFormulario = async () => {
-  // AQUÍ ESTÁN LAS URLS NUEVAS APUNTANDO A RENDER
   const url = esLogin.value 
     ? 'https://directorio-de-contactos-backend.onrender.com/login' 
     : 'https://directorio-de-contactos-backend.onrender.com/register';
@@ -57,10 +63,16 @@ const procesarFormulario = async () => {
   tipoMensaje.value = '';
 
   try {
-    const respuesta = await axios.post(url, { username: username.value, password: password.value });
+    const datosAEnviar = esLogin.value 
+      ? { username: username.value, password: password.value }
+      : { username: username.value, password: password.value, telefono: telefono.value };
+
+    const respuesta = await axios.post(url, datosAEnviar);
 
     if (esLogin.value) {
-      authStore.login(respuesta.data.token);
+      // AQUÍ ENVIAMOS AMBAS COSAS A LA MEMORIA (auth.js)
+      authStore.login(respuesta.data.token, respuesta.data.user);
+      
       mensaje.value = '¡Inicio de sesión exitoso! Redirigiendo...';
       tipoMensaje.value = 'exito';
       setTimeout(() => router.push('/directorio'), 1000);
@@ -69,9 +81,10 @@ const procesarFormulario = async () => {
       tipoMensaje.value = 'exito';
       esLogin.value = true;
       password.value = '';
+      telefono.value = ''; 
     }
   } catch (error) {
-    const errorDelServidor = error.response?.data?.errores?.[0]?.message || error.response?.data || 'Ocurrió un error inesperado';
+    const errorDelServidor = error.response?.data?.error || error.response?.data || 'Ocurrió un error inesperado';
     mensaje.value = `Error: ${errorDelServidor}`;
     tipoMensaje.value = 'error';
   }
