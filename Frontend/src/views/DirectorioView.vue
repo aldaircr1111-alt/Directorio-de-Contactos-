@@ -110,8 +110,8 @@ const modoEdicion = ref(false);
 const contactoIdActivo = ref(null);
 const formulario = ref({ nombre: '', telefono: '', categoria: '' });
 
-// Asegúrate de que esta URL apunte a tu backend (Local o Render)
-const API_URL = 'http://localhost:3000/contactos';
+// AQUÍ ESTÁ TU NUEVO ENLACE OFICIAL DE RENDER
+const API_URL = 'https://directorio-backend-bnfl.onrender.com/contactos';
 
 const obtenerContactos = async () => {
   try {
@@ -270,6 +270,10 @@ onMounted(() => { obtenerContactos(); });
 
 .lista-contactos {
   flex-grow: 1; overflow-y: auto; background-color: #ffffff;
+}
+
+.sin-contactos {
+  text-align: center; color: #667781; margin-top: 20px;
 }
 
 .item-contacto {
