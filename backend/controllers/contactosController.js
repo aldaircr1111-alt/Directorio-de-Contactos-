@@ -1,68 +1,62 @@
-const pool = require('../config/db');
+const db = require('../config/db');
 
-// Obtener todos los contactos del usuario
-const obtenerContactos = async (req, res) => {
-  try {
-    // req.user.id viene del middleware verificarToken
-    const result = await pool.query('SELECT * FROM contactos WHERE user_id = $1', [req.user.id]);
-    res.status(200).json(result.rows);
-  } catch (error) {
-    console.error('Error al obtener contactos:', error);
-    res.status(500).json({ error: 'Error al obtener los contactos' });
-  }
-};
+exports.guardarContacto = async (req, res) => {
+    try {
+        const { nombre, telefono, categoria } = req.body;
+        
+        // Verificamos si el usuario existe antes de leer su ID
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ error: 'Usuario no identificado' });
+        }
 
-// Crear un nuevo contacto
-const guardarContacto = async (req, res) => {
-  const { nombre, telefono, categoria } = req.body;
-  try {
-    const result = await pool.query(
-      'INSERT INTO contactos (nombre, telefono, categoria, user_id) VALUES ($1, $2, $3, $4) RETURNING *',
-      [nombre, telefono, categoria, req.user.id]
-    );
-    res.status(201).json({ contacto: result.rows[0] });
-  } catch (error) {
-    console.error('Error al guardar contacto:', error);
-    res.status(500).json({ error: 'Error al guardar el contacto' });
-  }
-};
+        const user_id = req.user.id; // Ahora sí, el ID vendrá del token
 
-// Editar un contacto existente
-const editarContacto = async (req, res) => {
-  const { id } = req.params;
-  const { nombre, telefono, categoria } = req.body;
-  try {
-    const result = await pool.query(
-      'UPDATE contactos SET nombre = $1, telefono = $2, categoria = $3 WHERE id = $4 AND user_id = $5 RETURNING *',
-      [nombre, telefono, categoria, id, req.user.id]
-    );
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Contacto no encontrado o no autorizado' });
+        const query = 'INSERT INTO contactos (nombre, telefono, categoria, user_id) VALUES ($1, $2, $3, $4) RETURNING *';
+        const values = [nombre, telefono, categoria, user_id];
+        
+        const result = await db.query(query, values);
+        
+        res.status(201).json({
+            mensaje: '¡Contacto guardado con éxito!',
+            contacto: result.rows[0]
+        });
+    } catch (error) {
+        console.error('Error al guardar contacto:', error);
+        res.status(500).json({ error: 'Error interno al guardar en la base de datos' });
     }
-    
-    res.status(200).json({ contacto: result.rows[0] });
-  } catch (error) {
-    console.error('Error al editar contacto:', error);
-    res.status(500).json({ error: 'Error al editar el contacto' });
-  }
 };
 
-// Eliminar un contacto
-const eliminarContacto = async (req, res) => {
-  const { id } = req.params;
-  try {
-    const result = await pool.query('DELETE FROM contactos WHERE id = $1 AND user_id = $2 RETURNING *', [id, req.user.id]);
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Contacto no encontrado o no autorizado' });
+// No olvides incluir las otras funciones (obtener, eliminar, etc.) si ya las tenías
+exports.obtenerContactos = async (req, res) => {
+    try {
+        const user_id = req.user.id;
+        const result = await db.query('SELECT * FROM contactos WHERE user_id = $1', [user_id]);
+        res.json(result.rows);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener contactos' });
     }
-
-    res.status(200).json({ mensaje: 'Contacto eliminado exitosamente' });
-  } catch (error) {
-    console.error('Error al eliminar contacto:', error);
-    res.status(500).json({ error: 'Error al eliminar el contacto' });
-  }
 };
 
-module.exports = { obtenerContactos, guardarContacto, editarContacto, eliminarContacto };
+exports.eliminarContacto = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user_id = req.user.id;
+        await db.query('DELETE FROM contactos WHERE id = $1 AND user_id = $2', [id, user_id]);
+        res.json({ mensaje: 'Contacto eliminado' });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al eliminar contacto' });
+    }
+};
+
+exports.actualizarContacto = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { nombre, telefono, categoria } = req.body;
+        const user_id = req.user.id;
+        const query = 'UPDATE contactos SET nombre = $1, telefono = $2, categoria = $3 WHERE id = $4 AND user_id = $5 RETURNING *';
+        const result = await db.query(query, [nombre, telefono, categoria, id, user_id]);
+        res.json({ mensaje: 'Contacto actualizado', contacto: result.rows[0] });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al actualizar contacto' });
+    }
+};
