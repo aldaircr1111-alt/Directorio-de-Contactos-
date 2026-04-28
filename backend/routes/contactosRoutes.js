@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const verificarToken = require('../middlewares/authMiddleware');
-const { obtenerContactos, guardarContacto, eliminarContacto, editarContacto } = require('../controllers/contactosController');
+const contactosController = require('../controllers/contactosController');
+const authMiddleware = require('../middlewares/authMiddleware');
 
-// Todas estas rutas pasarán primero por verificarToken
-router.get('/', verificarToken, obtenerContactos);
-router.post('/', verificarToken, guardarContacto);
-router.delete('/:id', verificarToken, eliminarContacto);
-router.put('/:id', verificarToken, editarContacto);
+// Proteger todas las rutas inyectando authMiddleware antes de llamar al controlador
+router.get('/', authMiddleware, contactosController.obtenerContactos);
+router.post('/', authMiddleware, contactosController.guardarContacto);
+router.put('/:id', authMiddleware, contactosController.actualizarContacto);
+router.delete('/:id', authMiddleware, contactosController.eliminarContacto);
 
 module.exports = router;
