@@ -42,22 +42,21 @@ app.use('/chat', chatRoutes); // <-- 2. Y agrega esta línea
 io.on('connection', (socket) => {
   console.log('⚡ Un usuario se ha conectado al chat:', socket.id);
 
-  // Cuando un usuario inicia sesión, lo metemos en una "sala" privada con su propio ID
-  socket.on('conectar_usuario', (userId) => {
-    socket.join(userId.toString());
-    console.log(`👤 Usuario ID: ${userId} en línea y listo para chatear.`);
+  // El usuario crea su sala privada usando su NÚMERO DE TELÉFONO
+  socket.on('conectar_usuario', (telefono) => {
+    socket.join(telefono.toString());
+    console.log(`📱 Teléfono: ${telefono} en línea y conectado.`);
   });
 
-  // Cuando un usuario envía un mensaje a otro
+  // Cuando se envía un mensaje
   socket.on('enviar_mensaje', (data) => {
-    // data traerá: { remitente_id, receptor_id, contenido }
-    console.log('📨 Nuevo mensaje circulando:', data);
+    console.log('📨 Mensaje en tránsito:', data);
     
-    // Le enviamos el mensaje al receptor
-    io.to(data.receptor_id.toString()).emit('recibir_mensaje', data);
+    // Le enviamos el mensaje al receptor usando su teléfono
+    io.to(data.receptor_telefono.toString()).emit('recibir_mensaje', data);
     
-    // También se lo enviamos de vuelta al remitente para que aparezca en su pantalla
-    io.to(data.remitente_id.toString()).emit('recibir_mensaje', data);
+    // Y te lo devolvemos a ti mismo (remitente_telefono) para que aparezca en tu pantalla verde
+    io.to(data.remitente_telefono.toString()).emit('recibir_mensaje', data);
   });
 
   socket.on('disconnect', () => {

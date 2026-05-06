@@ -1,41 +1,64 @@
 const db = require('../config/db');
 
-// 1. Función para traer el historial de la conversación (como cuando abres un chat en WhatsApp)
 exports.obtenerMensajes = async (req, res) => {
     try {
-        const usuario_id = req.user.id; // Tu ID (el que inició sesión)
-        const contacto_id = req.params.contactoId; // El ID de la persona con la que quieres chatear
+        const mi_id = req.user.id; // Tu ID interno
+        const contacto_telefono = req.params.contactoId; // El teléfono que llega del Frontend
 
-        // Buscamos los mensajes donde tú enviaste y él recibió, O donde él envió y tú recibiste.
-        // El 'ORDER BY fecha_envio ASC' asegura que los mensajes viejos salgan arriba y los nuevos abajo.
-        const query = `
-            SELECT * FROM mensajes 
-            WHERE (remitente_id = $1 AND receptor_id = $2) 
-               OR (remitente_id = $2 AND receptor_id = $1)
-            ORDER BY fecha_envio ASC
-        `;
-        const result = await db.query(query, [usuario_id, contacto_id]);
+        // 1. Buscamos a quién le pertenece ese teléfono
+        const userResult = await db.query('SELECT id FROM users WHERE telefono = $1', [contacto_telefono]);
         
-        res.json(result.rows); // Le enviamos la lista de mensajes al Frontend
+        // Si no existe, es porque no usan la app, devolvemos un chat vacío
+        if (userResult.rows.length === 0) {
+            return res.json([]); 
+        }
+        
+        const contacto_id = userResult.rows[0].id;
+
+        // 2. Traemos los mensajes cruzando los datos para incluir los teléfonos en la respuesta
+        const query = `
+            SELECT 
+                m.*, 
+                u1.telefono AS remitente_telefono, 
+                u2.telefono AS receptor_telefono
+            FROM mensajes m
+            JOIN users u1 ON m.remitente_id = u1.id
+            JOIN users u2 ON m.receptor_id = u2.id
+            WHERE (m.remitente_id = $1 AND m.receptor_id = $2) 
+               OR (m.remitente_id = $2 AND m.receptor_id = $1)
+            ORDER BY m.fecha_envio ASC
+        `;
+        const result = await db.query(query, [mi_id, contacto_id]);
+        
+        res.json(result.rows);
     } catch (error) {
         console.error('Error al obtener mensajes:', error);
-        res.status(500).json({ error: 'Error al obtener el historial de chat' });
+        res.status(500).json({ error: 'Error al obtener el historial' });
     }
 };
 
-// 2. Función para guardar un mensaje nuevo en la base de datos
 exports.guardarMensaje = async (req, res) => {
     try {
-        const remitente_id = req.user.id; // Siempre eres tú el que envía
-        const { receptor_id, contenido } = req.body; // A quién se lo envías y qué dice el texto
+        const mi_id = req.user.id; 
+        const { receptor_telefono, contenido } = req.body; 
 
+        // 1. Buscamos el ID del receptor usando el teléfono al que le escribiste
+        const userResult = await db.query('SELECT id FROM users WHERE telefono = $1', [receptor_telefono]);
+        
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ error: 'El contacto no usa la app' });
+        }
+
+        const receptor_id = userResult.rows[0].id;
+
+        // 2. Guardamos el mensaje en la base de datos
         const query = `
             INSERT INTO mensajes (remitente_id, receptor_id, contenido) 
             VALUES ($1, $2, $3) RETURNING *
         `;
-        const result = await db.query(query, [remitente_id, receptor_id, contenido]);
+        const result = await db.query(query, [mi_id, receptor_id, contenido]);
 
-        res.status(201).json(result.rows[0]); // Devolvemos el mensaje ya guardado
+        res.status(201).json(result.rows[0]);
     } catch (error) {
         console.error('Error al guardar mensaje:', error);
         res.status(500).json({ error: 'Error al guardar el mensaje' });
