@@ -8,12 +8,9 @@ const app = express();
 // 3. Envolvemos la app de Express en un servidor HTTP
 const server = http.createServer(app);
 
-// Extraemos la configuración de CORS a una variable para usarla en ambos lados (Express y Socket.io)
+// 💥 EL PASE VIP UNIVERSAL PARA CORS (EL ARREGLO ESTÁ AQUÍ)
 const corsOptions = {
-  origin: [
-    'http://localhost:5173', 
-    'https://directorio-contactos-frontend.onrender.com'
-  ],
+  origin: "*", // <--- Esto deja entrar cualquier conexión (Render o Local) sin bloquearla
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 };
@@ -21,7 +18,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// 4. Inicializamos Socket.io pegado a nuestro nuevo servidor
+// 4. Inicializamos Socket.io pegado a nuestro nuevo servidor usando el Pase VIP
 const io = new Server(server, {
   cors: corsOptions
 });
@@ -31,12 +28,12 @@ const port = process.env.PORT || 3000;
 // Importar rutas
 const authRoutes = require('./routes/authRoutes');
 const contactosRoutes = require('./routes/contactosRoutes');
-const chatRoutes = require('./routes/chatRoutes'); // <-- 1. Agrega esta línea
+const chatRoutes = require('./routes/chatRoutes');
 
 // Usar las rutas
 app.use('/auth', authRoutes);
 app.use('/contactos', contactosRoutes); 
-app.use('/chat', chatRoutes); // <-- 2. Y agrega esta línea
+app.use('/chat', chatRoutes);
 
 // --- LÓGICA DEL CHAT EN TIEMPO REAL (SOCKET.IO) ---
 io.on('connection', (socket) => {
@@ -65,7 +62,7 @@ io.on('connection', (socket) => {
 });
 // ---------------------------------------------------
 
-// 5. CAMBIO VITAL: Ahora usamos 'server.listen' en lugar de 'app.listen'
+// 5. Arrancamos el servidor
 server.listen(port, () => {
   console.log(`🚀 Servidor Express y Socket.io corriendo correctamente en el puerto ${port}`);
 });
