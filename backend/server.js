@@ -65,4 +65,4 @@ io.on('connection', (socket) => {
 // 5. Arrancamos el servidor
 server.listen(port, () => {
   console.log(`🚀 Servidor Express y Socket.io corriendo correctamente en el puerto ${port}`);
-});
+});  

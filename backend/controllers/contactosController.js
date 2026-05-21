@@ -2,17 +2,19 @@ const db = require('../config/db');
 
 exports.guardarContacto = async (req, res) => {
     try {
-        const { nombre, telefono, categoria } = req.body;
+        // CORRECCIÓN: Agregamos 'edad' para que lo reciba del Frontend
+        const { nombre, telefono, categoria, edad } = req.body;
         
         // Verificamos si el usuario existe antes de leer su ID
         if (!req.user || !req.user.id) {
             return res.status(401).json({ error: 'Usuario no identificado' });
         }
 
-        const user_id = req.user.id; // Ahora sí, el ID vendrá del token
+        const user_id = req.user.id; // El ID viene del token JWT
 
-        const query = 'INSERT INTO contactos (nombre, telefono, categoria, user_id) VALUES ($1, $2, $3, $4) RETURNING *';
-        const values = [nombre, telefono, categoria, user_id];
+        // CORRECCIÓN: Agregamos 'edad' a la consulta SQL ($4) y recorremos el user_id al $5
+        const query = 'INSERT INTO contactos (nombre, telefono, categoria, edad, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING *';
+        const values = [nombre, telefono, categoria, edad, user_id];
         
         const result = await db.query(query, values);
         
@@ -26,7 +28,6 @@ exports.guardarContacto = async (req, res) => {
     }
 };
 
-// No olvides incluir las otras funciones (obtener, eliminar, etc.) si ya las tenías
 exports.obtenerContactos = async (req, res) => {
     try {
         const user_id = req.user.id;
@@ -51,12 +52,16 @@ exports.eliminarContacto = async (req, res) => {
 exports.actualizarContacto = async (req, res) => {
     try {
         const { id } = req.params;
-        const { nombre, telefono, categoria } = req.body;
+        // CORRECCIÓN CRÍTICA: Faltaba extraer 'edad' aquí, lo que rompía el servidor en la siguiente línea
+        const { nombre, telefono, categoria, edad } = req.body; 
         const user_id = req.user.id;
-        const query = 'UPDATE contactos SET nombre = $1, telefono = $2, categoria = $3 WHERE id = $4 AND user_id = $5 RETURNING *';
-        const result = await db.query(query, [nombre, telefono, categoria, id, user_id]);
+        
+        const query = 'UPDATE contactos SET nombre = $1, telefono = $2, categoria = $3, edad = $4 WHERE id = $5 AND user_id = $6 RETURNING *';
+        const result = await db.query(query, [nombre, telefono, categoria, edad, id, user_id]);
+        
         res.json({ mensaje: 'Contacto actualizado', contacto: result.rows[0] });
     } catch (error) {
+        console.error('Error al actualizar contacto:', error);
         res.status(500).json({ error: 'Error al actualizar contacto' });
     }
 };

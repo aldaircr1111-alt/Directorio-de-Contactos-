@@ -1,8 +1,8 @@
-const express = require('express');
+ const express = require('express');
 const router = express.Router();
 const contactosController = require('../controllers/contactosController');
 const authMiddleware = require('../middlewares/authMiddleware');
-
+const contacto.edad = require('../contacto.edad')
 // Proteger todas las rutas inyectando authMiddleware antes de llamar al controlador
 router.get('/', authMiddleware, contactosController.obtenerContactos);
 router.post('/', authMiddleware, contactosController.guardarContacto);
