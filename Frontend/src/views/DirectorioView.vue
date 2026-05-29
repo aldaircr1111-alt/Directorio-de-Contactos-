@@ -95,7 +95,10 @@
               <label>Nombre:</label>
               <input type="text" v-model="formulario.nombre" required placeholder="Ej: Juan Pérez" />
             </div>
-            
+            <div class="grupo-input">
+              <label>Edad:</label>
+              <input type="text" v-model="formulario.edad" required placeholder="Ej: 25" />
+            </div>
             <div class="grupo-input">
               <label>Teléfono (Debe ser el número exacto del usuario):</label>
               <input type="text" v-model="formulario.telefono" required placeholder="Ej: 3001234567" />
@@ -153,7 +156,7 @@ const tipoMensaje = ref('exito');
 // Estados del Formulario
 const modoEdicion = ref(false);
 const contactoIdActivo = ref(null);
-const formulario = ref({ nombre: '', telefono: '', categoria: '' });
+const formulario = ref({ nombre: '', telefono: '', categoria: '', edad: '' });
 
 // Estados del Chat
 const modoChat = ref(false);
@@ -254,14 +257,14 @@ const obtenerContactos = async () => {
 const prepararNuevoContacto = () => {
   modoChat.value = false;
   modoEdicion.value = false;
-  formulario.value = { nombre: '', telefono: '', categoria: '' };
+  formulario.value = { nombre: '', telefono: '', categoria: '', edad: "" };
 };
 
 const prepararEdicion = (contacto) => {
   modoChat.value = false;
   modoEdicion.value = true;
   contactoIdActivo.value = contacto.id;
-  formulario.value = { nombre: contacto.nombre, telefono: contacto.telefono, categoria: contacto.categoria };
+  formulario.value = { nombre: contacto.nombre, telefono: contacto.telefono, categoria: contacto.categoria, edad: contacto.edad };
 };
 
 const guardarContacto = async () => {
